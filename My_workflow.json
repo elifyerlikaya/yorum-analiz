@@ -1,0 +1,266 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yorum-analiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b7aec291-ee4f-40a9-bdac-24612505b19d",
+      "name": "Webhook",
+      "webhookId": "332852c7-633e-4967-85a0-90cb7fec5490"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"openai/gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sen bir duygu analizi uzmanısın. Kullanıcıdan gelen yorumun sadece duygusunu analiz et. Cevap olarak yalnızca 'olumlu', 'olumsuz' veya 'nötr' yaz.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{$json[\"body\"][\"yorum\"]}}\"\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "ae0d60df-4b9a-4659-813b-3afbfb078bf2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const duygu = items[0].json.choices[0].message.content.toLowerCase().trim();\n\nlet mesaj = \"\";\n\nif (duygu === \"olumsuz\") {\n  mesaj = \"⚠️ Uygunsuz yorum tespit edildi!\";\n} else if (duygu === \"olumlu\") {\n  mesaj = \"😊 Olumlu yorum için teşekkürler!\";\n} else {\n  mesaj = \"😐 Nötr yorum kaydedildi.\";\n}\n\nreturn [\n  {\n    duygu,\n    mesaj,\n    tarih: new Date().toLocaleString(\"tr-TR\")\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "c54636ab-bd6a-4fcf-83cb-555d087a5e9c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eaa86a0b-d579-4a7c-9aa7-0cd28ffbc9e5",
+              "leftValue": "duygu",
+              "rightValue": "olumsuz",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        20
+      ],
+      "id": "cc7058be-1aed-45b4-8b96-a94762f9a542",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "elif.yerlikaya1@ogr.sakarya.edu.tr",
+        "toEmail": "Selvamaramaei.2003@gmail.com",
+        "subject": "⚠️ Olumsuz Yorum Tespit Edildi",
+        "html": "=<h2>📢 Yeni Olumsuz Yorum Algılandı</h2>\n<p><strong>💬 Duygu:</strong> {{$json[\"duygu\"]}}</p>\n<p><strong>📝 Mesaj:</strong> {{$json[\"mesaj\"]}}</p>\n<p><strong>📅 Tarih:</strong> {{$json[\"tarih\"]}}</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        920,
+        40
+      ],
+      "id": "54c547a9-16c2-4058-bf57-e15a8a68ad79",
+      "name": "Send Email",
+      "webhookId": "e020a03f-b2ff-4c1f-9f96-ab45b74d9de1",
+      "credentials": {
+        "smtp": {
+          "id": "NiXwyCi1YdKODQ5Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"mesaj\": \"⚠️ Olumsuz yorum tespit edildi. E-posta bildirimi gönderildi.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1140,
+        40
+      ],
+      "id": "defcc481-d631-4be8-9c21-e2a80edefe77",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "fromEmail": "elif.yerlikaya1@ogr.sakarya.edu.tr",
+        "toEmail": "fatihciloglu9@gmail.com",
+        "subject": " 😊 Olumlu Geri Bildirim Geldi!",
+        "html": "=<p><strong>Yorum:</strong> {{$json[\"yorum\"]}}</p>\n<p><strong>Sonuç:</strong> {{$json[\"mesaj\"]}}</p>\n<p><strong>Tarih:</strong> {{$json[\"tarih\"]}}</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        920,
+        -100
+      ],
+      "id": "4a47f50b-9658-445b-9ad5-104379e4de07",
+      "name": "Send Email1",
+      "webhookId": "9285c162-2ce1-46bc-91cf-a31add0d705f",
+      "credentials": {
+        "smtp": {
+          "id": "NiXwyCi1YdKODQ5Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"mesaj\": \"😊 Olumlu yorum tespit edildi. E-posta bildirimi gönderildi.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1140,
+        -100
+      ],
+      "id": "1c24e4d9-d5ad-4c25-8ee0-cae9b7c7c720",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send Email1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c687cc15-1f55-4526-961b-f88a8c72f2dd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "426dd42e80c494d5d2656048b11e2ad0e48a043e0cacbf47ea44e44382f029d8"
+  },
+  "id": "zMYf5ANZKfmauHhp",
+  "tags": []
+}
