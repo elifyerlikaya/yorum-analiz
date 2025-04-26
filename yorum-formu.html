@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Yorum Duygu Analizi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        textarea {
+            width: 400px;
+            height: 120px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #resultText {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>💬 Yorum Duygu Analizi Formu</h2>
+    <form id="commentForm">
+        <textarea id="comment" placeholder="Yorumunuzu buraya yazın..." required></textarea><br>
+        <button type="submit">Gönder</button>
+    </form>
+
+    <p id="resultText"></p>
+
+    <script>
+        const form = document.getElementById('commentForm');
+        const resultText = document.getElementById('resultText');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const comment = document.getElementById('comment').value;
+
+            try {
+                const response = await fetch('http://localhost:5678/webhook-test/yorum-analiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ yorum: comment })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultText.innerText = "✅ " + result.mesaj;
+                    form.reset();
+                } else {
+                    resultText.innerText = "❌ Bir hata oluştu. Lütfen tekrar deneyin.";
+                }
+            } catch (error) {
+                resultText.innerText = "🚫 Sunucuya bağlanılamadı.";
+            }
+        });
+    </script>
+
+</body>
+</html>
